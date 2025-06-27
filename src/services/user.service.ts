@@ -1,7 +1,7 @@
 import axios from 'axios';
 import config from '../config/keycloak.config';
 import { KeycloakService } from './keycloak.service';
-import { OnboardUser, User } from '../types/user.types';
+import { OnboardUser, User } from '../types/interface.types';
 
 export class UserService {
     private static keycloakBase = `${config.keycloakUrl}/admin/realms/${config.realm}`;
