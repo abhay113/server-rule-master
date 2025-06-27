@@ -63,9 +63,14 @@ export class UserService {
 
         try {
             await axios.get(`${this.keycloakBase}/roles/${roleName}`, { headers });
+            console.log(`Role ${roleName} already exists.`);
+            return;
+
         } catch (err: any) {
             if (err.response?.status === 404) {
                 await axios.post(`${this.keycloakBase}/roles`, { name: roleName }, { headers });
+                console.log(`Role ${roleName} created successfully.`);
+                return;
             } else {
                 throw err;
             }
@@ -77,15 +82,23 @@ export class UserService {
         const headers = await KeycloakService.getAuthHeaders();
 
         const role = (await axios.get(`${this.keycloakBase}/roles/${roleName}`, { headers })).data;
+        console.log(`Assigning role ${roleName} to user ${userId}`);
+        console.log('Role data:', role);
         await axios.post(`${this.keycloakBase}/users/${userId}/role-mappings/realm`, [role], { headers });
+        console.log(`Role ${roleName} assigned to user ${userId}`);
+
     }
 
     // Assign a realm role to a group
     static async assignRoleToGroup(groupId: string, roleName: string): Promise<void> {
         const headers = await KeycloakService.getAuthHeaders();
 
+        console.log(`Assigning role ${roleName} to group ${groupId}`);
         const role = (await axios.get(`${this.keycloakBase}/roles/${roleName}`, { headers })).data;
+        console.log('Role data:', role);
         await axios.post(`${this.keycloakBase}/groups/${groupId}/role-mappings/realm`, [role], { headers });
+        console.log(`Role ${roleName} assigned to group ${groupId}`);
+
     }
 
     // Complete onboarding flow: create user, group, assign group + role
@@ -103,11 +116,15 @@ export class UserService {
 
         await this.getOrCreateRole(data.roleName);
         await this.assignRoleToGroup(groupId, data.roleName);
+        await this.assignRoleToUser(userId, data.roleName);
     }
 
 
     static async getAllUsersWithRolesAndGroups(): Promise<any[]> {
+        console.log('Fetching all users with roles and groups in service');
+        console.log('Keycloak base URL:', this.keycloakBase);
         const headers = await KeycloakService.getAuthHeaders();
+        console.log('Headers:', headers);
         const usersRes = await axios.get(`${this.keycloakBase}/users`, { headers });
         const users = usersRes.data;
 
@@ -135,5 +152,7 @@ export class UserService {
 
         return userDetails;
     }
+
+
 
 }

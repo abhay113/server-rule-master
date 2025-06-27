@@ -17,7 +17,9 @@ export class UserController {
 
     static async getAllUsersWithRolesAndGroups(req: Request, res: Response) {
         try {
+            console.log('Fetching all users with roles and groups controller');
             const users = await UserService.getAllUsersWithRolesAndGroups();
+            console.log('Fetched users with roles and groups:', users.length);
             res.status(200).json(users);
         } catch (error: any) {
             console.error('Failed to fetch users:', error.message);

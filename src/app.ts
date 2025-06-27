@@ -1,10 +1,11 @@
 import express from 'express';
-import dotenv from 'dotenv';
 import tenantRoutes from './routes/tenant.routes';
 import userRoutes from './routes/user.routes';
 import cors from 'cors';
 import { logRequestResponse } from './middlewares/logger';
 import { errorHandler } from './middlewares/errorHandler';
+
+import dotenv from 'dotenv';
 dotenv.config();
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [];
