@@ -1,20 +1,25 @@
 import { Request, Response } from 'express';
-import { RuleService } from '../services/rule.service'
+import { RuleService } from '../services/rule.service';
+import { GeminiService } from '../services/gemini.service';
 
 export class RuleController {
-    static async createRuleFromAI(req: Request, res: Response) {
+    static async createRuleFromPrompt(req: Request, res: Response) {
         try {
-            const { parsedRule, userId } = req.body;
+            const { prompt } = req.body;
+            const createdBy = res.locals.user?.username || 'system';
+            console.log('Created by:', createdBy);
 
-            if (!parsedRule || !userId) {
-                return res.status(400).json({ error: 'Missing parsedRule or userId' });
+            if (!prompt) {
+                return res.status(400).json({ error: 'Missing prompt' });
             }
 
-            const ruleId = await RuleService.processAndStoreRule(parsedRule, userId);
-            res.status(201).json({ message: 'Rule created', ruleId });
-        } catch (error: any) {
-            console.error('Rule creation error:', error);
-            res.status(500).json({ error: 'Internal server error' });
+            const parsedRule = await GeminiService.generateRuleFromPrompt(prompt);
+            const ruleId = await RuleService.processAndStoreRule(parsedRule, createdBy);
+
+            return res.status(201).json({ ruleId, parsedRule });
+        } catch (err) {
+            console.error('Rule creation error:', err);
+            res.status(500).json({ error: 'Failed to create rule from prompt' });
         }
-    };
-} 
+    }
+}

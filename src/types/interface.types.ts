@@ -52,3 +52,21 @@ export interface RuleWithDetails extends Rule {
   conditions: RuleCondition[];
   actions: RuleAction[];
 }
+
+
+export interface Condition {
+  id: string;
+  field: string;
+  operator: string;
+  value: string | number | string[];
+};
+
+export interface ParsedRule {
+  rule: {
+    title: string;
+    department: string;
+  };
+  logic: string;
+  conditions: Condition[];
+  actions: { type: string; value: string }[];
+};
