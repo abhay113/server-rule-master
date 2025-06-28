@@ -1,23 +1,23 @@
-import { createRule, createRuleActions, createRuleConditions } from '../dao/rule.dao';
+import { RuleDao } from '../dao/rule.dao';
 
 export class RuleService {
-    static async processAndStoreRule(parsedRule: any, userId: string) {
+    static async processAndStoreRule(parsedRule: any, username: string) {
         const ruleData = {
             title: parsedRule.rule.title,
             department: parsedRule.rule.department || null,
             is_active: true,
-            created_by: userId,
+            created_by: username,
             created_at: new Date().toISOString()
         };
 
-        const { id: ruleId } = await createRule(ruleData);
+        const { id: ruleId } = await RuleDao.createRule(ruleData);
 
         const conditions = parsedRule.conditions.map((cond: any) => ({
             rule_id: ruleId,
             field: cond.field,
             operator: cond.operator,
             value: cond.value,
-            created_by: userId,
+            created_by: username,
             created_at: new Date().toISOString()
         }));
 
@@ -25,13 +25,82 @@ export class RuleService {
             rule_id: ruleId,
             type: action.type,
             value: action.value,
-            created_by: userId,
+            created_by: username,
             created_at: new Date().toISOString()
         }));
 
-        await createRuleConditions(conditions);
-        await createRuleActions(actions);
+        await RuleDao.createRuleConditions(conditions);
+        await RuleDao.createRuleActions(actions);
 
         return ruleId;
     };
+
+
+    static async getAllRules(page: number = 1, limit: number = 10, isActive?: boolean) {
+        const offset = (page - 1) * limit;
+        return await RuleDao.getAllRules(limit, offset, isActive);
+    }
+
+    static async getRuleById(id: string) {
+        return await RuleDao.getRuleById(id);
+    }
+
+    static async updateRule(id: string, updateData: any, updatedBy: string) {
+        const { conditions, actions, ...ruleData } = updateData;
+
+        // Update rule basic data
+        ruleData.updated_by = updatedBy;
+        ruleData.updated_at = new Date().toISOString();
+
+        const ruleUpdated = await RuleDao.updateRule(id, ruleData);
+
+        if (!ruleUpdated) return false;
+
+        // Update conditions if provided
+        if (conditions && Array.isArray(conditions)) {
+            await RuleDao.deleteRuleConditions(id);
+            const newConditions = conditions.map((cond: any) => ({
+                rule_id: id,
+                field: cond.field,
+                operator: cond.operator,
+                value: cond.value,
+                updated_by: updatedBy,
+                updated_at: new Date().toISOString()
+            }));
+            await RuleDao.createRuleConditions(newConditions);
+        }
+
+        // Update actions if provided
+        if (actions && Array.isArray(actions)) {
+            await RuleDao.deleteRuleActions(id);
+            const newActions = actions.map((action: any) => ({
+                rule_id: id,
+                type: action.type,
+                value: action.value,
+                updated_by: updatedBy,
+                updated_at: new Date().toISOString()
+            }));
+            await RuleDao.createRuleActions(newActions);
+        }
+
+        return true;
+    }
+
+    static async deleteRule(id: string) {
+        return await RuleDao.deleteRule(id);
+    }
+
+    static async getRulesByDepartment(
+        department: string,
+        page: number = 1,
+        limit: number = 10,
+        isActive?: boolean
+    ) {
+        const offset = (page - 1) * limit;
+        return await RuleDao.getRulesByDepartment(department, limit, offset, isActive);
+    }
+
+    static async toggleRuleStatus(id: string, updatedBy: string) {
+        return await RuleDao.toggleRuleStatus(id, updatedBy);
+    }
 }
