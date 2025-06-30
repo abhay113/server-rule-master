@@ -181,65 +181,37 @@ export class UserService {
         const headers = await KeycloakService.getAuthHeaders();
 
         try {
-            console.log(`=== CHILD GROUP CREATION DEBUG ===`);
+            console.log(`=== CHILD GROUP CREATION CHECK ===`);
             console.log(`Parent Group ID: ${parentGroupId}`);
             console.log(`Child Group Name: ${childGroupName}`);
 
-            // Check if child group already exists under parent
-
-            const subGroupsRes = await axios.get(
+            // STEP 1: Check if child group already exists
+            const existingChildrenRes = await axios.get(
                 `${this.keycloakBase}/groups/${parentGroupId}/children`,
                 { headers }
             );
-            console.log(`Fetched child groups under parent ${parentGroupId}:`, subGroupsRes.data.map((g: any) => g.name));
+            const existingChild = existingChildrenRes.data.find((g: any) => g.name === childGroupName);
 
-            const existingChild = subGroupsRes.data.find((g: any) => g.name === childGroupName);
             if (existingChild) {
-                console.log(`Child group ${childGroupName} already exists with ID: ${existingChild.id}`);
-                return existingChild.id;
-            }
-            console.log(`Child group ${childGroupName} does not exist, proceeding to create it`);
-            if (existingChild) {
-                console.log(`Child group ${childGroupName} already exists with ID: ${existingChild.id}`);
+                console.log(`✓ Child group '${childGroupName}' already exists with ID: ${existingChild.id}`);
                 return existingChild.id;
             }
 
-            // Child group doesn't exist, create it
-            console.log(`Creating child group: ${childGroupName} under parent: ${parentGroupId}`);
-            try {
-                const createResponse = await axios.post(`${this.keycloakBase}/groups/${parentGroupId}/children`, { name: childGroupName }, { headers });
-                console.log(`Child group creation response:`, createResponse.status);
-                console.log(`Child group ${childGroupName} created successfully`);
-            } catch (createError: any) {
-                console.error(`Error creating child group:`, createError.response?.data || createError.message);
-                // Handle race condition - child group might have been created by another process
-            }
-
-            // Add a small delay to ensure Keycloak has processed the creation
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Fetch the child group ID (whether we just created it or it was created by another process)
-            const updatedParentGroupRes = await axios.get(`${this.keycloakBase}/groups/${parentGroupId}`, { headers });
-            console.log(`Updated parent group data:`, JSON.stringify(updatedParentGroupRes.data, null, 2));
-
-            const newChild = updatedParentGroupRes.data.subGroups?.find((g: any) => g.name === childGroupName);
-
-            if (!newChild) {
-                console.error(`=== CHILD GROUP NOT FOUND ===`);
-                console.error(`Looking for child group: ${childGroupName}`);
-                console.error(`Available subGroups:`, updatedParentGroupRes.data.subGroups?.map((g: any) => g.name) || 'None');
-                throw new Error(`Failed to find child group after creation: ${childGroupName}`);
-            }
-
-            console.log(`Child group ${childGroupName} found with ID: ${newChild.id}`);
-            console.log(`=== CHILD GROUP CREATION SUCCESS ===`);
-            return newChild.id;
+            // STEP 2: Create child group under parent
+            console.log(`Child group '${childGroupName}' not found, creating...`);
+            const createResponse: any = await axios.post(
+                `${this.keycloakBase}/groups/${parentGroupId}/children`,
+                { name: childGroupName },
+                { headers }
+            );
+            console.log(`✓ Child group '${childGroupName}' created successfully with ID: ${createResponse.data.id}`);
+            console.log(`Child group creation ID:`, createResponse.data.id);
+            return createResponse.data.id!;
         } catch (error) {
-            console.error(`Error in getOrCreateChildGroup for ${childGroupName}:`, error);
+            console.error(`❌ Error in getOrCreateChildGroup for '${childGroupName}':`, error);
             throw error;
         }
     }
-
     // FIXED: Complete onboarding flow with corrected naming logic
     static async onboardUser(data: OnboardUser): Promise<void> {
         const headers = await KeycloakService.getAuthHeaders();
