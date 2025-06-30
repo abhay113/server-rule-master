@@ -44,4 +44,43 @@ User Rule:
 
     return parsed;
   }
+
+  static async detectIntentFromPrompt(prompt: string): Promise<'create' | 'list' | 'casual'> {
+    const systemPrompt = `
+You are a natural language intent classifier for a rule engine.
+
+Classify the prompt as one of:
+- create (if it's for making a new rule)
+- list (if it's asking to show/list rules)
+- casual (if it's not related to rules)
+
+Only return one word.
+
+Prompt:
+"${prompt}"
+`.trim();
+
+    const result = await gemini.generateContent({
+      contents: [{ role: 'user', parts: [{ text: systemPrompt }] }]
+    });
+
+    const intent = result.response.text().trim().toLowerCase();
+    return ['create', 'list'].includes(intent) ? intent as any : 'casual';
+  }
+
+  static async answerCasualPrompt(prompt: string): Promise<string> {
+    const systemPrompt = `
+You are a helpful assistant. Answer the user's general query briefly and clearly.
+
+User asked:
+"${prompt}"
+`.trim();
+
+    const result = await gemini.generateContent({
+      contents: [{ role: 'user', parts: [{ text: systemPrompt }] }]
+    });
+
+    return result.response.text().trim();
+  }
+
 }
