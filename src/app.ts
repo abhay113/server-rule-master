@@ -3,6 +3,7 @@ import tenantRoutes from './routes/tenant.routes';
 import userRoutes from './routes/user.routes';
 import authRoutes from './routes/auth.routes';
 import ruleRoutes from './routes/rule.routes';
+import chatRoutes from './routes/chat.routes';
 import cors from 'cors';
 import { logRequestResponse } from './middlewares/logger';
 import { errorHandler } from './middlewares/errorHandler';
@@ -37,6 +38,7 @@ app.use('/api/v1/tenants', tenantRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/rules', ruleRoutes);
+app.use('/api/v1/chat', chatRoutes);
 
 
 app.use(errorHandler);

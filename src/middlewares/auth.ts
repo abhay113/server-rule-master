@@ -17,6 +17,7 @@ function getKey(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback) {
     });
 }
 
+
 export const authenticateUser = (
     req: Request,
     res: Response,
@@ -44,13 +45,25 @@ export const authenticateUser = (
 
             const username = jwtPayload.preferred_username;
 
-            // ✅ Attach username to res.locals.user
+            // 🔍 Extract roles from Keycloak
+            const realmRoles = jwtPayload.realm_access?.roles || [];
+            const clientRoles = Object.values(jwtPayload.resource_access || {})
+                .flatMap((client: any) => client?.roles || []);
+
+            const allRoles = [...new Set([...realmRoles, ...clientRoles])];
+
+            // ✅ Attach to res.locals
             res.locals.user = {
                 username,
-                raw: jwtPayload // Optional: keep full token payload if needed
+                roles: allRoles,        // Add roles here
+                raw: jwtPayload         // Optional: keep full token payload
             };
 
-            next(); // ✅ Continue to the next middleware/route
+            next(); // ✅ Continue
         }
     );
+};
+
+export const hasAdminRole = (roles: string[]): boolean => {
+    return roles.some(role => role.toLowerCase().endsWith('_admin_role'));
 };
