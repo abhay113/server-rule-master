@@ -64,12 +64,26 @@ export class RuleController {
         try {
             const page = parseInt(req.query.page as string) || 1;
             const limit = parseInt(req.query.limit as string) || 10;
-            const isActive = req.query.is_active ? req.query.is_active === 'true' : undefined;
+            const isActive = req.query.isActive ? req.query.isActive === 'true' : undefined;
+            const requestedDepartment = req.query.department as string | undefined;
 
-            const result = await RuleService.getAllRules(page, limit, isActive);
+            const user = res.locals.user;
+            const isSuperAdmin = user?.isSuperAdmin;
+            const userDepartment = user?.department;
+
+            let departmentToUse: string | undefined;
+
+            if (isSuperAdmin) {
+                departmentToUse = requestedDepartment; // allow any department to be queried
+            } else {
+                departmentToUse = userDepartment; // restrict to user's department only
+            }
+
+            const result = await RuleService.getAllRules(page, limit, isActive, departmentToUse);
 
             return res.status(200).json({
                 success: true,
+                department: departmentToUse,
                 data: result.rules,
                 pagination: {
                     page,

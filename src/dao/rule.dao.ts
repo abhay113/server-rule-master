@@ -6,19 +6,28 @@ export class RuleDao {
 
     // get rules
 
-    static async getAllRules(limit: number, offset: number, isActive?: boolean) {
+    static async getAllRules(
+        limit: number,
+        offset: number,
+        isActive?: boolean,
+        department?: string
+    ) {
         let query = supabase
             .from('rules')
             .select(`
-        *,
-        rule_conditions (*),
-        rule_actions (*)
-      `)
+            *,
+            rule_conditions (*),
+            rule_actions (*)
+        `)
             .order('created_at', { ascending: false })
             .range(offset, offset + limit - 1);
 
         if (isActive !== undefined) {
             query = query.eq('is_active', isActive);
+        }
+
+        if (department) {
+            query = query.ilike('department', department);
         }
 
         const { data: rules, error } = await query;
@@ -31,6 +40,10 @@ export class RuleDao {
 
         if (isActive !== undefined) {
             countQuery = countQuery.eq('is_active', isActive);
+        }
+
+        if (department) {
+            countQuery = countQuery.eq('department', department);
         }
 
         const { count, error: countError } = await countQuery;

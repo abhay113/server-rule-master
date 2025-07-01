@@ -17,6 +17,14 @@ function getKey(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback) {
     });
 }
 
+export interface AuthenticatedUser {
+    username: string;
+    roles: string[];
+    group?: string[];
+    department?: string;
+    isSuperAdmin?: boolean;
+    raw: jwt.JwtPayload;
+}
 
 export const authenticateUser = (
     req: Request,
@@ -37,33 +45,35 @@ export const authenticateUser = (
         { algorithms: ['RS256'], issuer: keycloakIssuer },
         (err, decoded) => {
             if (err || !decoded) {
-                res.status(403).json({ message: 'Invalid token', error: err });
-                return;
+                return res.status(403).json({ message: 'Invalid token', error: err });
             }
 
             const jwtPayload = decoded as jwt.JwtPayload;
-
             const username = jwtPayload.preferred_username;
 
-            // 🔍 Extract roles from Keycloak
             const realmRoles = jwtPayload.realm_access?.roles || [];
             const clientRoles = Object.values(jwtPayload.resource_access || {})
                 .flatMap((client: any) => client?.roles || []);
-
             const allRoles = [...new Set([...realmRoles, ...clientRoles])];
 
-            // ✅ Attach to res.locals
-            res.locals.user = {
+            const group: string[] = jwtPayload.group || []; // keycloak group claim
+            const groupPath = group[0] || ''; // e.g., "/sales/sales_admin"
+            const parts = groupPath.split('/').filter(Boolean);
+            const department = parts[0] || undefined;
+            const isSuperAdmin = department === 'admin';
+
+            const userContext: AuthenticatedUser = {
                 username,
-                roles: allRoles,        // Add roles here
-                raw: jwtPayload         // Optional: keep full token payload
+                roles: allRoles,
+                group,
+                department,
+                isSuperAdmin,
+                raw: jwtPayload
             };
 
-            next(); // ✅ Continue
+            res.locals.user = userContext; // or attach to req.user if preferred
+
+            next();
         }
     );
-};
-
-export const hasAdminRole = (roles: string[]): boolean => {
-    return roles.some(role => role.toLowerCase().endsWith('_admin_role'));
 };

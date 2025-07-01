@@ -37,9 +37,14 @@ export class RuleService {
     };
 
 
-    static async getAllRules(page: number = 1, limit: number = 10, isActive?: boolean) {
+    static async getAllRules(
+        page: number = 1,
+        limit: number = 10,
+        isActive?: boolean,
+        department?: string
+    ) {
         const offset = (page - 1) * limit;
-        return await RuleDao.getAllRules(limit, offset, isActive);
+        return await RuleDao.getAllRules(limit, offset, isActive, department);
     }
 
     static async getRuleById(id: string) {
