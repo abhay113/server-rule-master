@@ -2,9 +2,11 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
+import dotenv from 'dotenv';
+dotenv.config();
 
-const keycloakIssuer = 'http://localhost:8080/realms/RULE_MASTER';
 
+const keycloakIssuer = `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}`;
 const client = jwksClient({
     jwksUri: `${keycloakIssuer}/protocol/openid-connect/certs`
 });
