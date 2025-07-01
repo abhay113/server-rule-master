@@ -12,6 +12,7 @@ export class RuleDao {
         isActive?: boolean,
         department?: string
     ) {
+        // Fetch rules with related conditions and actions
         let query = supabase
             .from('rules')
             .select(`
@@ -27,13 +28,13 @@ export class RuleDao {
         }
 
         if (department) {
-            query = query.ilike('department', department);
+            query = query.ilike('department', department); // case-insensitive match
         }
 
         const { data: rules, error } = await query;
         if (error) throw error;
 
-        // Get total count
+        // 🔁 Count query with same filters
         let countQuery = supabase
             .from('rules')
             .select('*', { count: 'exact', head: true });
@@ -43,7 +44,7 @@ export class RuleDao {
         }
 
         if (department) {
-            countQuery = countQuery.eq('department', department);
+            countQuery = countQuery.ilike('department', department); // match logic must be consistent
         }
 
         const { count, error: countError } = await countQuery;

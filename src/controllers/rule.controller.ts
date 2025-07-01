@@ -1,32 +1,30 @@
 import { Request, Response } from 'express';
 import { RuleService } from '../services/rule.service';
-import { GeminiService } from '../services/gemini.service';
-
 export class RuleController {
     // Create rule from NLP prompt
-    static async createRuleFromPrompt(req: Request, res: Response) {
-        try {
-            const { prompt } = req.body;
-            const createdBy = res.locals.user?.username || 'system';
+    // static async createRuleFromPrompt(req: Request, res: Response) {
+    //     try {
+    //         const { prompt } = req.body;
+    //         const createdBy = res.locals.user?.username || 'system';
 
-            if (!prompt) {
-                return res.status(400).json({ error: 'Missing prompt' });
-            }
+    //         if (!prompt) {
+    //             return res.status(400).json({ error: 'Missing prompt' });
+    //         }
 
-            const parsedRule = await GeminiService.generateRuleFromPrompt(prompt);
-            const ruleId = await RuleService.processAndStoreRule(parsedRule, createdBy);
+    //         const parsedRule = await GeminiService.generateRuleFromPrompt(prompt);
+    //         const ruleId = await RuleService.processAndStoreRule(parsedRule, createdBy);
 
-            return res.status(201).json({
-                success: true,
-                ruleId,
-                parsedRule,
-                message: 'Rule created successfully from prompt'
-            });
-        } catch (err) {
-            console.error('Rule creation error:', err);
-            res.status(500).json({ error: 'Failed to create rule from prompt' });
-        }
-    }
+    //         return res.status(201).json({
+    //             success: true,
+    //             ruleId,
+    //             parsedRule,
+    //             message: 'Rule created successfully from prompt'
+    //         });
+    //     } catch (err) {
+    //         console.error('Rule creation error:', err);
+    //         res.status(500).json({ error: 'Failed to create rule from prompt' });
+    //     }
+    // }
 
     // Create rule manually
     static async createRule(req: Request, res: Response) {

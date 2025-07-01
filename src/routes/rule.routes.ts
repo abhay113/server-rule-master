@@ -5,7 +5,7 @@ import { authenticateUser } from '../middlewares/auth';
 const router = express.Router();
 
 // Create rule from NLP prompt
-router.post('/nlp', authenticateUser, RuleController.createRuleFromPrompt);
+// router.post('/nlp', authenticateUser, RuleController.createRuleFromPrompt);
 
 // CRUD operations
 router.post('/', authenticateUser, RuleController.createRule);

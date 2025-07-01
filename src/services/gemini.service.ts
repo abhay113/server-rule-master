@@ -2,27 +2,39 @@ import { gemini } from '../config/gemini.config';
 import { Condition } from '../types/interface.types';
 import { normalizeOperator } from '../services/operator.service';
 export class GeminiService {
-  static async generateRuleFromPrompt(userPrompt: string) {
+  static async generateRuleFromPrompt(userPrompt: string, department: string) {
     const systemPrompt = `
-You are a rule parser. Convert the user input into structured JSON.
+You are a rule parser and validator. Convert the user input into structured JSON.
 
-Format:
-{
-  "rule": { "title": "...", "department": "..." },
-  "logic": "(cond1 AND cond2)",
-  "conditions": [
-    { "id": "cond1", "field": "...", "operator": "...", "value": "..." }
-  ],
-  "actions": [
-    { "type": "...", "value": "..." }
-  ]
+⚠️ VERY IMPORTANT:
+- The rule must be relevant to the department: "${department}".
+- If the user's prompt describes logic outside of this department (e.g., software, finance, HR, etc.), DO NOT generate a rule.
+- Instead, return: { "error": "The rule does not pertain to the '${department}' department." }
+
+✅ Always set:
+"rule": {
+  "title": "...",
+  "department": "${department}",
+  "description": "..."
 }
 
-Use symbolic operators like >, <, =, !=, >=, <=, IN, NOT IN, LIKE etc.
+🧠 Do NOT assume department from the prompt. Only allow rule creation if the prompt context clearly belongs to the "${department}" department.
+
+Output format (if valid):
+{
+  "rule": { "title": "...", "department": "${department}", "description": "..." },
+  "logic": "(cond1 AND cond2)",
+  "conditions": [ { "id": "cond1", "field": "...", "operator": "...", "value": "..." } ],
+  "actions": [ { "type": "...", "value": "..." } ]
+}
+
+If the rule is not valid for the "${department}" department, return:
+{ "error": "The rule does not pertain to the '${department}' department." }
 
 User Rule:
 "${userPrompt}"
 `.trim();
+
 
     const result = await gemini.generateContent({
       contents: [{ role: 'user', parts: [{ text: systemPrompt }] }]
@@ -34,14 +46,13 @@ User Rule:
 
     const parsed = JSON.parse(jsonMatch[0]);
 
-    // Normalize operators in conditions
+    // Normalize operators
     if (Array.isArray(parsed.conditions)) {
       parsed.conditions = parsed.conditions.map((cond: Condition) => ({
         ...cond,
         operator: normalizeOperator(cond.operator)
       }));
     }
-
     return parsed;
   }
 

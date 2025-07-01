@@ -27,7 +27,15 @@ export class ChatController {
                         });
                     }
 
-                    const parsedRule = await GeminiService.generateRuleFromPrompt(prompt);
+                    const parsedRule = await GeminiService.generateRuleFromPrompt(prompt, department);
+
+                    if ('error' in parsedRule) {
+                        return res.status(400).json({
+                            success: false,
+                            message: parsedRule.error,
+                        });
+                    }
+
                     const ruleId = await RuleService.processAndStoreRule(parsedRule, user);
 
                     return res.status(201).json({
