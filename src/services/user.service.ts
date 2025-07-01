@@ -2,10 +2,12 @@ import axios from 'axios';
 import config from '../config/keycloak.config';
 import { KeycloakService } from './keycloak.service';
 import { OnboardUser, User } from '../types/interface.types';
+import dotenv from 'dotenv';
+dotenv.config();
 
 export class UserService {
     private static keycloakBase = `${config.keycloakUrl}/admin/realms/${config.realm}`;
-
+    private static client_id = process.env.KEYCLOAK_CLIENT_ID!;
     // Create a new Keycloak user and return the user's ID
     static async createUser(user: User): Promise<string> {
         const headers = await KeycloakService.getAuthHeaders();
@@ -116,66 +118,129 @@ export class UserService {
     }
 
     // Get or create a role
-    static async getOrCreateRole(roleName: string): Promise<void> {
-        const headers = await KeycloakService.getAuthHeaders();
+    // static async getOrCreateRole(roleName: string): Promise<void> {
+    //     const headers = await KeycloakService.getAuthHeaders();
 
-        try {
-            // Check if role already exists
-            await axios.get(`${this.keycloakBase}/roles/${roleName}`, { headers });
-            console.log(`Role ${roleName} already exists.`);
-            return;
-        } catch (err: any) {
-            if (err.response?.status === 404) {
-                // Role doesn't exist, create it
-                try {
-                    await axios.post(`${this.keycloakBase}/roles`, { name: roleName }, { headers });
-                    console.log(`Role ${roleName} created successfully.`);
-                    return;
-                } catch (createError: any) {
-                    // Handle race condition - role might have been created by another process
-                    if (createError.response?.status === 409) {
-                        console.log(`Role ${roleName} was created by another process.`);
-                        return;
-                    } else {
-                        console.error(`Error creating role ${roleName}:`, createError);
-                        throw createError;
-                    }
-                }
-            } else {
-                console.error(`Error checking role ${roleName}:`, err);
-                throw err;
-            }
-        }
+    //     try {
+    //         // Check if role already exists
+    //         await axios.get(`${this.keycloakBase}/roles/${roleName}`, { headers });
+    //         console.log(`Role ${roleName} already exists.`);
+    //         return;
+    //     } catch (err: any) {
+    //         if (err.response?.status === 404) {
+    //             // Role doesn't exist, create it
+    //             try {
+    //                 await axios.post(`${this.keycloakBase}/roles`, { name: roleName }, { headers });
+    //                 console.log(`Role ${roleName} created successfully.`);
+    //                 return;
+    //             } catch (createError: any) {
+    //                 // Handle race condition - role might have been created by another process
+    //                 if (createError.response?.status === 409) {
+    //                     console.log(`Role ${roleName} was created by another process.`);
+    //                     return;
+    //                 } else {
+    //                     console.error(`Error creating role ${roleName}:`, createError);
+    //                     throw createError;
+    //                 }
+    //             }
+    //         } else {
+    //             console.error(`Error checking role ${roleName}:`, err);
+    //             throw err;
+    //         }
+    //     }
+    // }
+
+
+
+
+   static async getClientRoleId(clientId: string, roleName: string): Promise<string> {
+    const headers = await KeycloakService.getAuthHeaders();
+
+    // Step 1: Get internal Keycloak client UUID by clientId
+    const clientsRes = await axios.get(`${this.keycloakBase}/clients?clientId=${clientId}`, { headers });
+    const client = clientsRes.data[0];
+
+    console.log(`Client ID: ${clientId}`);
+    if (!client) {
+        throw new Error(`Client with clientId "${clientId}" not found.`);
     }
+
+    const internalClientId = client.id;
+
+    // Step 2: Get the role details from that client
+    const roleRes = await axios.get(
+        `${this.keycloakBase}/clients/${internalClientId}/roles/${roleName}`,
+        { headers }
+    );
+
+    const role = roleRes.data;
+    console.log(`Role Name: ${roleName}`);
+    console.log(`Role ID: ${role.id}`);
+
+    if (!role || !role.id) {
+        throw new Error(`Role "${roleName}" not found under client "${clientId}".`);
+    }
+
+    return role.id; // ✅ You now have the client role ID
+}
+
 
     // NOTE: We don't assign roles directly to users - roles are assigned to subgroups
     // Users inherit roles from their subgroup membership
 
     // Assign a realm role to a group (with duplicate check)
-    static async assignRoleToGroup(groupId: string, roleName: string): Promise<void> {
-        const headers = await KeycloakService.getAuthHeaders();
+  static async assignClientRoleToGroup(
+  groupId: string,
+  clientId: string,       // client ID (e.g., "rule-backend")
+  roleName: string
+): Promise<void> {
+  const headers = await KeycloakService.getAuthHeaders();
 
-        try {
-            // Check if group already has this role
-            const groupRolesRes = await axios.get(`${this.keycloakBase}/groups/${groupId}/role-mappings/realm`, { headers });
-            const hasRole = groupRolesRes.data.some((r: any) => r.name === roleName);
-
-            if (hasRole) {
-                console.log(`Group ${groupId} already has role ${roleName}`);
-                return;
-            }
-
-            // Get role details and assign to group
-            console.log(`Assigning role ${roleName} to group ${groupId}`);
-            const role = (await axios.get(`${this.keycloakBase}/roles/${roleName}`, { headers })).data;
-
-            await axios.post(`${this.keycloakBase}/groups/${groupId}/role-mappings/realm`, [role], { headers });
-            console.log(`Role ${roleName} assigned to group ${groupId}`);
-        } catch (error) {
-            console.error(`Error assigning role ${roleName} to group ${groupId}:`, error);
-            throw error;
-        }
+  try {
+    // 1. Get the client UUID from clientId
+    const clientsRes = await axios.get(
+      `${this.keycloakBase}/clients?clientId=${clientId}`,
+      { headers }
+    );
+    const client = clientsRes.data[0];
+    if (!client) {
+      throw new Error(`Client '${clientId}' not found`);
     }
+
+    const clientUUID = client.id;
+
+    // 2. Check if group already has the client role
+    const groupRolesRes = await axios.get(
+      `${this.keycloakBase}/groups/${groupId}/role-mappings/clients/${clientUUID}`,
+      { headers }
+    );
+    const hasRole = groupRolesRes.data.some((r: any) => r.name === roleName);
+    if (hasRole) {
+      console.log(`Group ${groupId} already has client role '${roleName}'`);
+      return;
+    }
+
+    // 3. Get role object
+    const roleRes = await axios.get(
+      `${this.keycloakBase}/clients/${clientUUID}/roles/${roleName}`,
+      { headers }
+    );
+    const role = roleRes.data;
+
+    // 4. Assign role to group
+    await axios.post(
+      `${this.keycloakBase}/groups/${groupId}/role-mappings/clients/${clientUUID}`,
+      [role],
+      { headers }
+    );
+
+    console.log(`✅ Client role '${roleName}' assigned to group '${groupId}'`);
+  } catch (error) {
+    console.error(`❌ Failed to assign client role '${roleName}' to group '${groupId}':`, error);
+    throw error;
+  }
+}
+
 
     static async getOrCreateChildGroup(parentGroupId: string, childGroupName: string): Promise<string> {
         const headers = await KeycloakService.getAuthHeaders();
@@ -296,12 +361,13 @@ export class UserService {
             // Step 6: Get or create role
             console.log('Step 6: Getting/creating role...');
             const normalizedRoleName = data.roleName.toLowerCase();
-            await this.getOrCreateRole(normalizedRoleName);
+            await this.getClientRoleId( UserService.client_id,normalizedRoleName);
             console.log(`✓ Role '${normalizedRoleName}' ensured`);
 
             // Step 7: Assign role to child group
             console.log('Step 7: Assigning role to child group...');
-            await this.assignRoleToGroup(childGroupId, normalizedRoleName);
+            await this.assignClientRoleToGroup(childGroupId,UserService.client_id, normalizedRoleName);
+
             console.log(`✓ Role assigned to child group`);
 
             // Summary
