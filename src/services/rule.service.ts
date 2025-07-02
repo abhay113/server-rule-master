@@ -5,6 +5,7 @@ export class RuleService {
         const ruleData = {
             title: parsedRule.rule.title,
             department: parsedRule.rule.department || null,
+            description: parsedRule.rule.description || null, 
             logic: parsedRule.logic || null, // ✅ Add this line
             is_active: true,
             created_by: username,

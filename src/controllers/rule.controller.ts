@@ -1,8 +1,11 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express'; // Import NextFunction
 import { RuleService } from '../services/rule.service';
+// Assuming GeminiService is used for NLP prompt generation, if uncommented later
+// import { GeminiService } from '../services/gemini.service';
+
 export class RuleController {
-    // Create rule from NLP prompt
-    // static async createRuleFromPrompt(req: Request, res: Response) {
+    // Create rule from NLP prompt (currently commented out, but updated for next())
+    // static async createRuleFromPrompt(req: Request, res: Response, next: NextFunction) {
     //     try {
     //         const { prompt } = req.body;
     //         const createdBy = res.locals.user?.username || 'system';
@@ -22,24 +25,25 @@ export class RuleController {
     //         });
     //     } catch (err) {
     //         console.error('Rule creation error:', err);
-    //         res.status(500).json({ error: 'Failed to create rule from prompt' });
+    //         next(err); // Pass the error to the next middleware
     //     }
     // }
 
     // Create rule manually
-    static async createRule(req: Request, res: Response) {
+    static async createRule(req: Request, res: Response, next: NextFunction) { // Add next: NextFunction
         try {
             const { title, department, conditions, actions, logic } = req.body;
             const createdBy = res.locals.user?.username || 'system';
 
             if (!title || !conditions || !actions) {
+                // Client error, respond directly and return
                 return res.status(400).json({
                     error: 'Missing required fields: title, conditions, actions'
                 });
             }
 
             const ruleData = {
-                rule: { title, department, logic },
+                rule: { title, department, logic ,},
                 conditions,
                 actions
             };
@@ -53,12 +57,12 @@ export class RuleController {
             });
         } catch (err) {
             console.error('Rule creation error:', err);
-            res.status(500).json({ error: 'Failed to create rule' });
+            next(err); // Pass the error to the next middleware
         }
     }
 
     // Get all rules with pagination
-    static async getAllRules(req: Request, res: Response) {
+    static async getAllRules(req: Request, res: Response, next: NextFunction) { // Add next: NextFunction
         try {
             const page = parseInt(req.query.page as string) || 1;
             const limit = parseInt(req.query.limit as string) || 10;
@@ -92,23 +96,25 @@ export class RuleController {
             });
         } catch (err) {
             console.error('Get rules error:', err);
-            res.status(500).json({ error: 'Failed to fetch rules' });
+            next(err); // Pass the error to the next middleware
         }
     }
 
     // Get rule by ID with conditions and actions
-    static async getRuleById(req: Request, res: Response) {
+    static async getRuleById(req: Request, res: Response, next: NextFunction) { // Add next: NextFunction
         try {
             const { id } = req.params;
             console.log('Fetching rule with ID:', id);
 
             if (!id) {
+                // Client error, respond directly and return
                 return res.status(400).json({ error: 'Invalid rule ID ' });
             }
 
             const rule = await RuleService.getRuleById(id);
 
             if (!rule) {
+                // Client error, respond directly and return
                 return res.status(404).json({ error: 'Rule not found' });
             }
 
@@ -118,17 +124,18 @@ export class RuleController {
             });
         } catch (err) {
             console.error('Get rule error:', err);
-            res.status(500).json({ error: 'Failed to fetch rule' });
+            next(err); // Pass the error to the next middleware
         }
     }
 
     // Update rule
-    static async updateRule(req: Request, res: Response) {
+    static async updateRule(req: Request, res: Response, next: NextFunction) { // Add next: NextFunction
         try {
             const { id } = req.params;
             const { title, department, conditions, actions, logic, is_active } = req.body;
             const updatedBy = res.locals.user?.username || 'system';
             if (!id) {
+                // Client error, respond directly and return
                 return res.status(400).json({ error: 'Invalid rule ID' });
             }
 
@@ -144,6 +151,7 @@ export class RuleController {
             const success = await RuleService.updateRule(id, updateData, updatedBy);
 
             if (!success) {
+                // Client error, respond directly and return
                 return res.status(404).json({ error: 'Rule not found' });
             }
 
@@ -153,22 +161,24 @@ export class RuleController {
             });
         } catch (err) {
             console.error('Update rule error:', err);
-            res.status(500).json({ error: 'Failed to update rule' });
+            next(err); // Pass the error to the next middleware
         }
     }
 
     // Delete rule
-    static async deleteRule(req: Request, res: Response) {
+    static async deleteRule(req: Request, res: Response, next: NextFunction) { // Add next: NextFunction
         try {
             const { id } = req.params;
 
             if (!id) {
+                // Client error, respond directly and return
                 return res.status(400).json({ error: 'Invalid rule ID' });
             }
 
             const success = await RuleService.deleteRule(id);
 
             if (!success) {
+                // Client error, respond directly and return
                 return res.status(404).json({ error: 'Rule not found' });
             }
 
@@ -178,12 +188,12 @@ export class RuleController {
             });
         } catch (err) {
             console.error('Delete rule error:', err);
-            res.status(500).json({ error: 'Failed to delete rule' });
+            next(err); // Pass the error to the next middleware
         }
     }
 
     // Get rules by department
-    static async getRulesByDepartment(req: Request, res: Response) {
+    static async getRulesByDepartment(req: Request, res: Response, next: NextFunction) { // Add next: NextFunction
         try {
             const { department } = req.params;
             const page = parseInt(req.query.page as string) || 1;
@@ -191,6 +201,7 @@ export class RuleController {
             const isActive = req.query.is_active ? req.query.is_active === 'true' : undefined;
 
             if (!department) {
+                // Client error, respond directly and return
                 return res.status(400).json({ error: 'Department parameter is required' });
             }
 
@@ -214,23 +225,25 @@ export class RuleController {
             });
         } catch (err) {
             console.error('Get rules by department error:', err);
-            res.status(500).json({ error: 'Failed to fetch rules by department' });
+            next(err); // Pass the error to the next middleware
         }
     }
 
     // Toggle rule active status
-    static async toggleRuleStatus(req: Request, res: Response) {
+    static async toggleRuleStatus(req: Request, res: Response, next: NextFunction) { // Add next: NextFunction
         try {
             const { id } = req.params;
             const updatedBy = res.locals.user?.username || 'system';
 
             if (!id) {
+                // Client error, respond directly and return
                 return res.status(400).json({ error: 'Invalid rule ID' });
             }
 
             const newStatus = await RuleService.toggleRuleStatus(id, updatedBy);
 
             if (newStatus === null) {
+                // Client error, respond directly and return
                 return res.status(404).json({ error: 'Rule not found' });
             }
 
@@ -241,7 +254,7 @@ export class RuleController {
             });
         } catch (err) {
             console.error('Toggle rule status error:', err);
-            res.status(500).json({ error: 'Failed to toggle rule status' });
+            next(err); // Pass the error to the next middleware
         }
     }
 }

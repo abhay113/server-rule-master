@@ -28,7 +28,7 @@ export class ChatController {
                     }
 
                     const parsedRule = await GeminiService.generateRuleFromPrompt(prompt, department);
-
+                    console.log('Parsed Rule:', parsedRule);
                     if ('error' in parsedRule) {
                         return res.status(400).json({
                             success: false,
