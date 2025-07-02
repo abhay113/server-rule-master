@@ -243,11 +243,11 @@ export class RuleDao {
     }
 
     static async getRuleStats() {
-        const { data: totalRules, error: totalError } = await supabase
+        const { count: totalCount, error: totalError } = await supabase
             .from('rules')
             .select('*', { count: 'exact', head: true });
 
-        const { data: activeRules, error: activeError } = await supabase
+        const { count: activeCount, error: activeError } = await supabase
             .from('rules')
             .select('*', { count: 'exact', head: true })
             .eq('is_active', true);
@@ -261,14 +261,17 @@ export class RuleDao {
             throw totalError || activeError || deptError;
         }
 
-        const uniqueDepartments = [...new Set(departments.map(rule => rule.department))];
+        const uniqueDepartments = [
+            ...new Set(departments.map((rule) => rule.department))
+        ];
 
         return {
-            totalRules: totalRules.length,
-            activeRules: activeRules.length,
-            inactiveRules: totalRules.length - activeRules.length,
+            totalRules: totalCount ?? 0,
+            activeRules: activeCount ?? 0,
+            inactiveRules: (totalCount ?? 0) - (activeCount ?? 0),
             totalDepartments: uniqueDepartments.length
         };
     }
+
 
 } 

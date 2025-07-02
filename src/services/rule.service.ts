@@ -5,7 +5,7 @@ export class RuleService {
         const ruleData = {
             title: parsedRule.rule.title,
             department: parsedRule.rule.department || null,
-            description: parsedRule.rule.description || null, 
+            description: parsedRule.rule.description || null,
             logic: parsedRule.logic || null, // ✅ Add this line
             is_active: true,
             created_by: username,
@@ -109,5 +109,23 @@ export class RuleService {
 
     static async toggleRuleStatus(id: string, updatedBy: string) {
         return await RuleDao.toggleRuleStatus(id, updatedBy);
+    }
+
+    static async getRuleStats() {
+        // Call directly the existing DAO method
+
+        try {
+
+            const stats = await RuleDao.getRuleStats();
+            return {
+                totalRules: stats.totalRules,
+                activeRules: stats.activeRules,
+                inactiveRules: stats.inactiveRules,
+                totalDepartments: stats.totalDepartments
+            };
+        } catch (error) {
+            console.error('Error fetching rule stats:', error);
+            throw new Error('Failed to fetch rule statistics');
+        }
     }
 }

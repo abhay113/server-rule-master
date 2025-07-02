@@ -14,6 +14,8 @@ router.get('/:id', authenticateUser, RuleController.getRuleById);
 router.put('/:id', authenticateUser, RuleController.updateRule);
 router.delete('/:id', authenticateUser, RuleController.deleteRule);
 
+router.get('/stats/rules', authenticateUser, RuleController.getRuleStats);
+
 // Get rules by department
 router.get('/department/:department', authenticateUser, RuleController.getRulesByDepartment);
 

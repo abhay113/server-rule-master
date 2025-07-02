@@ -43,7 +43,7 @@ export class RuleController {
             }
 
             const ruleData = {
-                rule: { title, department, logic ,},
+                rule: { title, department, logic, },
                 conditions,
                 actions
             };
@@ -255,6 +255,15 @@ export class RuleController {
         } catch (err) {
             console.error('Toggle rule status error:', err);
             next(err); // Pass the error to the next middleware
+        }
+    }
+
+    static async getRuleStats(req: Request, res: Response, next: NextFunction) {
+        try {
+            const stats = await RuleService.getRuleStats();
+            return res.status(200).json({ success: true, data: stats });
+        } catch (error) {
+            next(error);
         }
     }
 }
